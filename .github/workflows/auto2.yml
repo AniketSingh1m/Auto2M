@@ -1,0 +1,94 @@
+name: Auto Merge br2 into br1 and main
+
+on:
+  push:
+    branches:
+      - br2
+
+permissions:
+  pull-requests: write  # Gives write access to pull requests (needed for merging)
+  contents: write        # Gives write access to repository contents
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Auto merge to br1
+        if: ${{ github.event.ref == 'refs/heads/br2' }}  # Ensure we are on br2
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const allowedAuthor = 'AniketSingh1m';  // Replace with allowed GitHub username
+            const br1 = 'br1'; // Name of the branch to merge into
+
+            // Check if the last commit author matches
+            const { data: commits } = await github.rest.repos.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: 'br2',
+              per_page: 1,
+            });
+            
+            const lastCommit = commits[0];
+            if (lastCommit.commit.author.name === allowedAuthor) {
+              await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Auto-merge from br2 to ${br1}`,
+                head: 'br2',
+                base: br1,
+              });
+
+              // Merge the pull request
+              await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                merge_method: 'merge',
+              });
+            } else {
+              console.log('Not merging to br1: Author does not match.');
+            }
+
+      - name: Auto merge to main
+        if: ${{ github.event.ref == 'refs/heads/br2' }}  # Ensure we are on br2
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const allowedAuthor = 'AniketSingh1m';  // Replace with allowed GitHub username
+            const main = 'main'; // Name of the branch to merge into
+
+            // Check if the last commit author matches
+            const { data: commits } = await github.rest.repos.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: 'br2',
+              per_page: 1,
+            });
+            
+            const lastCommit = commits[0];
+            if (lastCommit.commit.author.name === allowedAuthor) {
+              await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Auto-merge from br2 to ${main}`,
+                head: 'br2',
+                base: main,
+              });
+
+              // Merge the pull request
+              await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                merge_method: 'merge',
+              });
+            } else {
+              console.log('Not merging to main: Author does not match.');
+            }
